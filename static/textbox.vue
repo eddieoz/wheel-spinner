@@ -91,28 +91,37 @@ limitations under the License.
         div.innerHTML = entries.map(entry => Util.renderEntry(entry)).join('');
       },
       onPaste(e) {
-        // Intercept paste into the text-box. Transform rich text into plain text,
-        // unless a data image is being pasted.
-        e.preventDefault();
-        Util.trackEvent('Wheel', 'PasteIntoTextbox', '');
-        if (e.clipboardData) {
-          // Modern browsers.
-          let html = (e.originalEvent || e).clipboardData.getData('text/html');
-          let match = html.match(/(<.*?src="data:image.*?>)/);
-          if (match) {
-            document.execCommand('insertHtml', false, match[1]);
+        const clipboardData = e.clipboardData || window.clipboardData;
+        if (clipboardData) {
+          // Check if an image is being pasted
+          const items = clipboardData.items;
+          let hasImage = false;
+          for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+              hasImage = true;
+              e.preventDefault();
+              // Handle the image insertion
+              const file = items[i].getAsFile();
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                const img = document.createElement('img');
+                img.src = event.target.result;
+                // Insert the image at the cursor position
+                const sel = window.getSelection();
+                if (sel.rangeCount) {
+                  const range = sel.getRangeAt(0);
+                  range.deleteContents();
+                  range.insertNode(img);
+                }
+              };
+              reader.readAsDataURL(file);
+              break;
+            }
           }
-          else {
-            let text = (e.originalEvent || e).clipboardData.getData('text/plain');
-            document.execCommand('insertText', false, text);
-          }
-        }
-        else {
-          // Internet Explorer.
-          const clipboardData = window.clipboardData.getData('text');
-          if (clipboardData) {
-            this.$store.commit('appendTextEntries', clipboardData.split(/\n/));
-          }
+          // If no image is being pasted, allow the default paste action
+        } else {
+          // For older browsers like IE
+          // Let the default action occur or handle accordingly
         }
       }
     }

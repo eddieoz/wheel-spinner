@@ -12,5 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+export NODE_OPTIONS=--openssl-legacy-provider
+
 rm -r dist/*
 npx webpack --config build/dev.config.js
